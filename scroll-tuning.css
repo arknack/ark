@@ -1,0 +1,3 @@
+/* Final hero pacing */
+.panoramic-hero{min-height:400svh;height:400svh}
+@media(max-width:760px){.panoramic-hero{height:400svh;min-height:2640px}}
