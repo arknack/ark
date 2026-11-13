@@ -1,3 +1,10 @@
-/* Final hero pacing */
-.panoramic-hero{min-height:400svh;height:400svh}
-@media(max-width:760px){.panoramic-hero{height:400svh;min-height:2640px}}
+/* True 360 panorama pacing and controls */
+.panoramic-hero{min-height:300svh;height:300svh;background:#171714}
+.panoramic-hero .hero-image{cursor:grab;touch-action:pan-y}
+.panoramic-hero .hero-image.is-dragging{cursor:grabbing}
+.panoramic-hero .hero-image:after{z-index:1;background:linear-gradient(90deg,rgba(10,10,9,.72),rgba(10,10,9,.12) 58%,rgba(10,10,9,.05)),linear-gradient(0deg,rgba(10,10,9,.46),transparent 54%)}
+.panorama-surface{--panorama-x:0px;--panorama-y:0px;position:absolute;inset:-4%;background-image:url('assets/facade-360-equirectangular.png');background-repeat:repeat-x;background-size:auto 108%;background-position:var(--panorama-x) calc(50% + var(--panorama-y));filter:saturate(.84) contrast(1.07);will-change:background-position;transform:scale(1.03)}
+.panorama-source{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none}
+.panoramic-hero .image-note{z-index:3}
+@media(max-width:760px){.panoramic-hero{height:250svh;min-height:1650px}.panorama-surface{background-size:auto 104%}}
+@media(prefers-reduced-motion:reduce){.marquee div{animation:none}.panoramic-hero{height:100svh;min-height:680px}.panorama-surface{background-position:center center}}

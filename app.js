@@ -3,13 +3,21 @@ const nav = document.querySelector('nav');
 const progress = document.querySelector('.scroll-progress span');
 const heroImage = document.querySelector('.hero-image img');
 const heroFrame = document.querySelector('.hero-image');
+const panoramaSurface = document.querySelector('.panorama-surface');
 const panoramicHero = document.querySelector('.panoramic-hero');
 const showcaseFrame = document.querySelector('.showcase-frame');
 const showcaseLogo = document.querySelector('.showcase-logo');
-const viewer = document.querySelector('.project-viewer');
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+document.querySelectorAll('a[target="_blank"]').forEach((link) => {
+  link.rel = 'noopener noreferrer';
+});
 let pointerX = 0;
 let pointerY = 0;
+let panoramaDrag = 0;
+let panoramaDragging = false;
+let panoramaStartX = 0;
+let panoramaStartDrag = 0;
 
 const updateHero3D = () => {
   if (!heroFrame || !heroImage || reduceMotion) return;
@@ -18,9 +26,12 @@ const updateHero3D = () => {
   const travel = panoramicHero && scrollDistance > 0
     ? Math.min(1, Math.max(0, -panoramicHero.getBoundingClientRect().top / scrollDistance))
     : Math.min(1, Math.max(0, (window.innerHeight - rect.top) / (window.innerHeight + rect.height)));
-  const scrollTilt = (travel - .5) * 7;
-  heroImage.style.objectPosition = `${22 + travel * 56}% center`;
-  heroImage.style.transform = `perspective(1300px) translate3d(${pointerX * -11}px, ${scrollTilt * -4}px, 32px) rotateX(${scrollTilt * -1}deg) rotateY(${pointerX * 3.2}deg) rotateZ(${pointerY * -.5}deg) scale(1.075)`;
+  const angle = travel * 360 + panoramaDrag;
+  if (panoramaSurface) {
+    const renderedPanoramaWidth = heroFrame.clientHeight * (window.innerWidth <= 760 ? 2.08 : 2.16);
+    panoramaSurface.style.setProperty('--panorama-x', `${-(angle / 360) * renderedPanoramaWidth}px`);
+    panoramaSurface.style.setProperty('--panorama-y', `${pointerY * -18}px`);
+  }
 };
 
 const updateShowcase3D = () => {
@@ -58,35 +69,63 @@ const observer = new IntersectionObserver((entries) => {
 }, { threshold: 0.14 });
 document.querySelectorAll('.reveal').forEach((element) => observer.observe(element));
 
-document.querySelectorAll('.project').forEach((project) => {
-  const image = project.querySelector('img');
-  const label = project.querySelector('figcaption span').textContent;
-  const title = project.querySelector('figcaption strong').textContent;
-  project.tabIndex = 0;
-  project.setAttribute('role', 'button');
-  project.setAttribute('aria-label', `View ${title}`);
-  const showProject = () => {
-    viewer.querySelector('img').src = image.currentSrc || image.src;
-    viewer.querySelector('img').alt = image.alt;
-    viewer.querySelector('.viewer-caption span').textContent = label;
-    viewer.querySelector('.viewer-caption strong').textContent = title;
-    viewer.showModal();
-  };
-  project.addEventListener('click', showProject);
-  project.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); showProject(); }
-  });
-});
-
-viewer.querySelector('.viewer-close').addEventListener('click', () => viewer.close());
-viewer.addEventListener('click', (event) => { if (event.target === viewer) viewer.close(); });
-
 if (window.matchMedia('(pointer:fine)').matches && heroImage) {
   heroFrame.addEventListener('pointermove', (event) => {
     const { width, height, left, top } = event.currentTarget.getBoundingClientRect();
     pointerX = (event.clientX - left) / width - .5;
     pointerY = (event.clientY - top) / height - .5;
+    if (panoramaDragging) panoramaDrag = panoramaStartDrag + (event.clientX - panoramaStartX) * -.24;
     updateHero3D();
   });
+  heroFrame.addEventListener('pointerdown', (event) => {
+    panoramaDragging = true;
+    panoramaStartX = event.clientX;
+    panoramaStartDrag = panoramaDrag;
+    heroFrame.setPointerCapture(event.pointerId);
+    heroFrame.classList.add('is-dragging');
+  });
+  heroFrame.addEventListener('pointerup', (event) => {
+    panoramaDragging = false;
+    heroFrame.releasePointerCapture(event.pointerId);
+    heroFrame.classList.remove('is-dragging');
+  });
   heroFrame.addEventListener('pointerleave', () => { pointerX = 0; pointerY = 0; updateHero3D(); });
+}
+
+const catalogueSearch = document.querySelector('[data-catalogue-search]');
+if (catalogueSearch) {
+  const catalogueLinks = [...document.querySelectorAll('.catalogue-links a')];
+  catalogueSearch.addEventListener('input', () => {
+    const query = catalogueSearch.value.trim().toLowerCase();
+    catalogueLinks.forEach((link) => {
+      link.hidden = Boolean(query) && !link.textContent.toLowerCase().includes(query);
+    });
+  });
+}
+
+const materialTrack = document.querySelector('[data-material-track]');
+if (materialTrack && !reduceMotion) {
+  [...materialTrack.children].forEach((card) => {
+    const duplicate = card.cloneNode(true);
+    duplicate.setAttribute('aria-hidden', 'true');
+    duplicate.tabIndex = -1;
+    duplicate.classList.remove('reveal');
+    duplicate.classList.add('is-visible');
+    duplicate.querySelectorAll('img').forEach((image) => image.removeAttribute('loading'));
+    materialTrack.appendChild(duplicate);
+  });
+}
+
+const enquiryForm = document.querySelector('[data-enquiry-form]');
+if (enquiryForm) {
+  enquiryForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const data = new FormData(enquiryForm);
+    const name = data.get('name');
+    const material = data.get('material');
+    const note = data.get('note');
+    const subject = `ARK enquiry · ${material}`;
+    const body = `Name: ${name}\nMaterial: ${material}\n\nProject note:\n${note}`;
+    window.location.href = `mailto:arknack.info@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  });
 }
